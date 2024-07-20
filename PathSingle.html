@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>PathSingle-Lucy</title>
+  <script src="../__js/babylon.js"></script>
+    <style>
+      html, body {overflow: hidden;width: 100%;height: 100%;margin: 0;padding: 0;}
+      #renderCanvas {width: 100%;height: 100%;touch-action: none;}
+      #canvasZone {width: 100%;height: 100%;}
+    </style>
+  </head>
+<body>
+  <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+<script>
+//----------------------------TOWERS
+  let taw=[];                                  // towers
+  let twp=[new BABYLON.Vector3(-10,0,-10),     // towers positions
+           new BABYLON.Vector3( 10,0,-10),
+           new BABYLON.Vector3( 10,0, 20),
+           new BABYLON.Vector3(-10,0, 10),
+           new BABYLON.Vector3(-20,0,  0)];
+  let twx=[];                                  // index target tower      
+//----------------------------PEOPLE
+  let spd=[];                                  // speed
+  let dir=[];                                  // angle to tower 
+  let dip=[];                                  // old angle 
+  let dic=[];                                  // counter of step rotation
+
+  var canvas = document.getElementById("renderCanvas");
+  var startRenderLoop = function (engine, canvas) {
+    engine.runRenderLoop(function () {
+      if (sceneToRender && sceneToRender.activeCamera) {sceneToRender.render();}
+    });
+  }
+  var engine = null;
+  var scene = null;
+  var sceneToRender = null;
+  var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+  const createScene = function () {
+  const scene = new BABYLON.Scene(engine);
+
+//--------------------------- Mesh  4 + 3*4 = 16
+
+  let Pp=[];
+/*
+  Pp[0]=BABYLON.SceneLoader.ImportMesh("", "Penta/", "Penta.babylon", scene,
+    function (mesh, particleSystems, skeletons) {          
+      scene.beginAnimation(skeletons[0], 0, 20, true, .5);
+      Pp[0]=mesh[0];
+      Pp[0].scaling=new BABYLON.Vector3(.5,.5,.5)
+      Pp[0].position.y=2;
+      for(let i=0;i<3;i++){Pp.push(Pp[0].createInstance("a"+i));} 
+    }
+  );
+*/
+  Pp[0]=BABYLON.SceneLoader.ImportMesh("", "Maya/", "Maya.babylon", scene,
+    function (mesh, particleSystems, skeletons) {          
+      scene.beginAnimation(skeletons[0], 0, 20, true, .7);
+      Pp[0]=mesh[0];
+      Pp[0].scaling=new BABYLON.Vector3(.3,.3,.3)
+      Pp[0].position.y=2;
+      for(let i=0;i<3;i++){Pp.push(Pp[0].createInstance("a"+i));} 
+    }
+  );
+  Pp[1]=BABYLON.SceneLoader.ImportMesh("", "Ally/", "Ally.babylon", scene,
+    function (mesh, particleSystems, skeletons) {          
+      scene.beginAnimation(skeletons[0], 0, 20, true, 1);
+      Pp[1]=mesh[0];
+      Pp[1].scaling=new BABYLON.Vector3(.3,.3,.3)
+      Pp[1].position.y=2;
+      for(let i=0;i<3;i++){Pp.push(Pp[1].createInstance("a"+i));} 
+    }
+  );
+  Pp[2]=BABYLON.SceneLoader.ImportMesh("", "Lucy/", "Lucy.babylon", scene,
+    function (mesh, particleSystems, skeletons) {          
+      scene.beginAnimation(skeletons[0], 0, 20, true, 1.0);
+      Pp[2]=mesh[0];
+      Pp[2].scaling=new BABYLON.Vector3(.3,.3,.3)
+      Pp[2].position.y=2;
+      for(let i=0;i<3;i++){Pp.push(Pp[2].createInstance("a"+i));} 
+    }
+  );
+  Pp[3]=BABYLON.SceneLoader.ImportMesh("", "Rema/", "Rema.babylon", scene,
+    function (mesh, particleSystems, skeletons) {          
+      scene.beginAnimation(skeletons[0], 0, 20, true, 1.0);
+      Pp[3]=mesh[0];
+      Pp[3].scaling=new BABYLON.Vector3(.3,.3,.3)
+      Pp[3].position.y=2;
+      for(let i=0;i<3;i++){Pp.push(Pp[3].createInstance("a"+i));}
+      const myTimeout = setTimeout(Go, 1000);  // solo per l'ultimo
+    }
+  );
+
+
+
+
+  function Go(scene){//alert(Pp.length);
+
+  //  Pp[10].material.emissiveColor = new BABYLON.Color3(.5,.5,.2);
+  
+    let anp,ang;
+    const camera = new BABYLON.ArcRotateCamera("camera1", -Math.PI / 2, Math.PI / 3.5, 25, new BABYLON.Vector3(0, 0, 0));
+    camera.attachControl(canvas, true);
+    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+    light.intensity = 0.7;
+
+    const ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 50, height: 50}, scene);
+    ground.material = new BABYLON.StandardMaterial("groundMat", scene);
+    ground.material.diffuseColor = new BABYLON.Color3(1, 1, 1);
+    ground.material.backFaceCulling = false;
+
+    let matred = new BABYLON.StandardMaterial(scene);
+    matred.diffuseColor = new BABYLON.Color3(1,0,0);
+  //---------------------------towers 
+    for(let i=0;i<5;i++){
+      taw.push(BABYLON.MeshBuilder.CreateCylinder("cyl"+i, {height:1}));
+      taw[i].material=matred;
+      taw[i].position=twp[i];
+    } 
+  //                         people ini
+    for(let i=0;i<16;i++){
+      Pp[i].position=new BABYLON.Vector3(Math.random()*20-10,2,20+Math.random()*20-10);//start position
+      spd.push(Math.random()/10+.005);                                                  //random speed 
+      ang=Math.atan2(Pp[i].position.x-twp[0].x,Pp[i].position.z-twp[0].z);             //start angle  
+      dir.push(ang); // angle ini tower
+      twx.push(0);   // index ini tower
+      dip.push(ang); // angle old
+      dic.push(0);   // step rotation counter  
+    }
+  }
+
+
+  scene.registerBeforeRender(function() { 
+    // i mezzi veloci si spostano esterno curva
+  
+    for(let i=0;i<16;i++){   // for each people
+      //--------------------------- update tower direction 
+      if(Math.abs(Pp[i].position.x-twp[twx[i]].x)<4&&Math.abs(Pp[i].position.z-twp[twx[i]].z)<4){
+      twx[i]++;if(twx[i]>4){twx[i]=0;}   // next tower target
+      ang=Math.atan2(Pp[i].position.x-twp[twx[i]].x,Pp[i].position.z-twp[twx[i]].z);
+      dir[i]=ang; 
+      if(dip[i]-ang>0){dir[i]=(dip[i]-ang)/50;} //100
+      else{dir[i]= (6.28+dip[i]-ang)/50;}       //100   // new angle
+      dic[i]=55;  // 110                                // set step counter
+      }
+      // rotate
+      if(dic[i]>0){dic[i]--;dip[i]-=dir[i];}            // decrement step counter
+      if(dip[i]<-6.28){dip[i]+=6.28;}                   // normalize
+       
+    //  ang=dip[i]; 
+    // recalc ang after curve
+    //  if(dic[i]==1){ang=Math.atan2(Pp[i].position.x-twp[twx[i]].x,Pp[i].position.z-twp[twx[i]].z);}
+
+      ang=dip[i];
+      Pp[i].rotation.y=ang;
+      // move in ang direction
+      Pp[i].position.x-=(spd[i]*Math.sin(ang));
+      Pp[i].position.z-=(spd[i]*Math.cos(ang));
+   }
+  });
+return scene;
+};
+
+window.initFunction = async function() {
+            
+var asyncEngineCreation = async function() {
+    try {return createDefaultEngine();} 
+    catch(e) {
+      console.log("the available createEngine function failed. Creating the default engine instead");
+      return createDefaultEngine();}
+  }
+
+  window.engine = await asyncEngineCreation();
+  if (!engine) throw 'engine should not be null.';
+  startRenderLoop(engine, canvas);
+  window.scene = createScene();};
+  initFunction().then(() => {sceneToRender = scene});
+
+  window.addEventListener("resize", function () {engine.resize();});
+</script>
+</body>
+</html>
